@@ -116,6 +116,54 @@ class Dropout(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class Dropout_Custom(Layer):
+    """Applies Dropout to the input.
+
+    Dropout consists in randomly setting
+    a fraction `p` of input units to 0 at each update during training time,
+    which helps prevent overfitting.
+
+    # Arguments
+        p: float between 0 and 1. Fraction of the input units to drop.
+        noise_shape: 1D integer tensor representing the shape of the
+            binary dropout mask that will be multiplied with the input.
+            For instance, if your inputs ahve shape
+            `(batch_size, timesteps, features)` and
+            you want the dropout mask to be the same for all timesteps,
+            you can use `noise_shape=(batch_size, 1, features)`.
+        seed: A Python integer to use as random seed.
+
+    # References
+        - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf)
+    """
+
+    def __init__(self, p, noise_shape=None, seed=None, **kwargs):
+        self.p = p
+        self.noise_shape = noise_shape
+        self.seed = seed
+        if 0. < self.p < 1.:
+            self.uses_learning_phase = True
+        self.supports_masking = True
+        super(Dropout_Custom, self).__init__(**kwargs)
+
+    def _get_noise_shape(self, _):
+        return self.noise_shape
+
+    def call(self, x, mask=None):
+        if 0. < self.p < 1.:
+            noise_shape = self._get_noise_shape(x)
+
+            def dropped_inputs():
+                return K.dropout(x, self.p, noise_shape, seed=self.seed)
+
+            x = K.in_train_phase(dropped_inputs, dropped_inputs)
+        return x
+
+    def get_config(self):
+        config = {'p': self.p}
+        base_config = super(Dropout_Custom, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class SpatialDropout1D(Dropout):
     """Spatial 1D version of Dropout.
 
