@@ -77,6 +77,9 @@ def learning_phase():
 def set_learning_phase(value):
     """Sets the learning phase to a fixed value,
     either 0 or 1 (integers).
+
+    # Raises
+        ValueError: if `value` is neither `0` nor `1`.
     """
     global _GRAPH_LEARNING_PHASES
     if value not in {0, 1}:
@@ -711,7 +714,8 @@ def cast(x, dtype):
         # you need to assign it.
         >>> input = K.cast(input, dtype='float16')
         >>> input
-        <tf.Tensor 'Cast_2:0' shape=(2, 3) dtype=float16>    ```
+        <tf.Tensor 'Cast_2:0' shape=(2, 3) dtype=float16>
+    ```
     """
     return tf.cast(x, dtype)
 
@@ -866,6 +870,8 @@ def batch_dot(x, y, axes=None):
         (32, 1, 30)
     ```
     """
+    if ndim(x) < 3 or ndim(y) < 3:
+        raise ValueError('Invalid dimensions for batch_dot: ', ndim(x), ndim(y))
     if isinstance(axes, int):
         axes = (axes, axes)
     if axes is not None:
@@ -1458,6 +1464,9 @@ def resize_images(X, height_factor, width_factor, dim_ordering):
 
     # Returns
         A tensor.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'th':
         original_shape = int_shape(X)
@@ -1490,6 +1499,9 @@ def resize_volumes(X, depth_factor, height_factor, width_factor, dim_ordering):
 
     # Returns
         A tensor.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'th':
         output = repeat_elements(X, depth_factor, axis=2)
@@ -1643,6 +1655,9 @@ def spatial_2d_padding(x, padding=(1, 1), dim_ordering='default'):
 
     # Returns
         A padded 4D tensor.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -1668,6 +1683,9 @@ def asymmetric_spatial_2d_padding(x, top_pad=1, bottom_pad=1,
 
     # Returns
         A padded 4D tensor.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -1696,6 +1714,10 @@ def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
 
     # Returns
         A padded 5D tensor.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
+
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -1963,8 +1985,7 @@ def rnn(step_function, inputs, initial_states,
         mask: binary tensor with shape `(samples, time, 1)`,
             with a zero for every element that is masked.
         constants: a list of constant values passed at each step.
-        unroll: with TensorFlow the RNN is always unrolled, but with Theano you
-            can use this boolean flag to unroll the RNN.
+        unroll: whether to unroll the RNN or to use a symbolic loop (`while_loop` or `scan` depending on backend).
         input_length: not relevant in the TensorFlow implementation.
             Must be specified if using unrolling with Theano.
 
@@ -1977,6 +1998,12 @@ def rnn(step_function, inputs, initial_states,
                 at time `t` for sample `s`.
             new_states: list of tensors, latest states returned by
                 the step function, of shape `(samples, ...)`.
+
+    # Raises
+        ValueError: if input dimension is less than 3.
+        ValueError: if `unroll` is `True` but input timestep is not a fixed number.
+        ValueError: if `mask` is provided (not `None`) but states is not provided
+            (`len(states)` == 0).
     """
     ndim = len(inputs.get_shape())
     if ndim < 3:
@@ -2494,6 +2521,7 @@ def _preprocess_deconv_output_shape(x, shape, dim_ordering):
 
     if shape[0] is None:
         shape = (tf.shape(x)[0], ) + tuple(shape[1:])
+        shape = tf.stack(list(shape))
     return shape
 
 
@@ -2613,6 +2641,9 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
 
     # Returns
         A tensor, result of 2D convolution.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2650,6 +2681,9 @@ def deconv2d(x, kernel, output_shape, strides=(1, 1),
 
     # Returns
         A tensor, result of transposed 2D convolution.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2687,6 +2721,9 @@ def atrous_conv2d(x, kernel, rate=1,
 
     # Returns
         A tensor, result of atrous transposed 2D convolution.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2707,6 +2744,9 @@ def atrous_conv2d(x, kernel, rate=1,
 def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
                      border_mode='valid', dim_ordering='default'):
     """2-D convolution with separable filters.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2741,6 +2781,9 @@ def conv3d(x, kernel, strides=(1, 1, 1),
 
     # Returns
         A tensor, result of 3D convolution.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2770,6 +2813,10 @@ def pool2d(x, pool_size, strides=(1, 1),
 
     # Returns
         A tensor, result of 2D pooling.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
+        ValueError: if `pool_mode` is neither `max` or `avg`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
@@ -2805,6 +2852,10 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
 
     # Returns
         A tensor, result of 3D pooling.
+
+    # Raises
+        ValueError: if `dim_ordering` is neither `tf` or `th`.
+        ValueError: if `pool_mode` is neither `max` or `avg`.
     """
     if dim_ordering == 'default':
         dim_ordering = image_dim_ordering()
